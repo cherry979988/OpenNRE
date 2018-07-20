@@ -130,6 +130,9 @@ class Framework(object):
         self.loss = loss
         self.output = output
 
+        config = tf.ConfigProto(log_device_placement = False)
+        config.gpu_options.allow_growth = True
+
         # Optimizer
         self.sess = tf.Session()
         self.global_step = tf.Variable(0, name='global_step', trainable=False)
