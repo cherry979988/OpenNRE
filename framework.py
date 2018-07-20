@@ -265,6 +265,10 @@ class Framework(object):
         save_y = None
         best_auc = 0
         best_epoch = 0
+        best_f1 = 0
+        best_f1_epoch = 0
+        precision = 0
+        recall = 0
         print('test ' + FLAGS.model_name)
         for epoch in epoch_range:
             if not os.path.exists(os.path.join(FLAGS.checkpoint_dir, FLAGS.model_name + '-' + str(epoch) + '.index')):
@@ -322,12 +326,23 @@ class Framework(object):
                 best_epoch = epoch
                 save_x = pr_result_x
                 save_y = pr_result_y
+            f1 = 2/(1/np.array(pr_result_x)+1/np.array(pr_result_y))
+            idx = np.argmax(f1)
+            precision = pr_result_y[idx]
+            recall = pr_result_x[idx]
+            print('P,R,F1:', precision,',',recall,',',np.max(f1))
+            if np.max(f1) > best_f1:
+                best_f1 = np.max(f1)
+                best_f1_epoch = epoch
+
 
         if not os.path.exists(FLAGS.test_result_dir):
             os.mkdir(FLAGS.test_result_dir)
         np.save(os.path.join(FLAGS.test_result_dir, FLAGS.model_name + '_x.npy'), save_x)
         np.save(os.path.join(FLAGS.test_result_dir, FLAGS.model_name + '_y.npy'), save_y)
         print('best epoch:', best_epoch)
+        print('best f1 epoch:', best_f1_epoch)
+        print('P,R,F1:', precision,',',recall,',',best_f1)
 
     def adversarial(self, loss, embedding):
         perturb = tf.gradients(loss, embedding)
