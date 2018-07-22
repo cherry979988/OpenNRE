@@ -331,12 +331,12 @@ class Framework(object):
                 save_y = pr_result_y
             f1 = 2/(1/np.array(pr_result_x)+1/np.array(pr_result_y))
             idx = np.argmax(f1)
-            precision = pr_result_y[idx]
-            recall = pr_result_x[idx]
-            print('P,R,F1:', precision,',',recall,',',np.max(f1))
+            print('P,R,F1:', pr_result_y[idx],',',pr_result_x[idx],',',np.max(f1))
             if np.max(f1) > best_f1:
                 best_f1 = np.max(f1)
                 best_f1_epoch = epoch
+                precision = pr_result_y[idx]
+                recall = pr_result_x[idx]
 
 
         if not os.path.exists(FLAGS.test_result_dir):
