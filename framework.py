@@ -281,7 +281,8 @@ class Framework(object):
             stack_output = []
             stack_label = []
             total = int(len(self.data_instance_scope) / FLAGS.batch_size)
-
+            print(self.data_instance_scope)
+            print(total)
             test_result = []
             total_recall = 0 
             for i in range(total):
@@ -338,6 +339,9 @@ class Framework(object):
                 precision = pr_result_y[idx]
                 recall = pr_result_x[idx]
 
+            hits1, hits3, hits5, hits10 = self.calcHits(sorted_test_result)
+            print('hits1/3/5/10/20/100: ', hits1, hits3, hits5, hits10)
+
 
         if not os.path.exists(FLAGS.test_result_dir):
             os.mkdir(FLAGS.test_result_dir)
@@ -352,3 +356,24 @@ class Framework(object):
         perturb = tf.reshape((0.01 * tf.stop_gradient(tf.nn.l2_normalize(perturb, dim=[0, 1, 2]))), [-1, FLAGS.max_length, embedding.shape[-1]])
         embedding = embedding + perturb
         return embedding
+
+    def calcHits(self, sorted_test_result):
+        listofN = [1,3,5,10]
+        d = dict()
+        for item in sorted_test_result:
+            if (item[0][0], item[0][1]) not in d:
+                d[(item[0][0], item[0][1])] = []
+            d[(item[0][0], item[0][1])].append((item[0][2], item[1], item[2]))
+        n = len(d)
+        hits = dict()
+        for t in listofN:
+            hits[t] = 0
+        for key in d:
+            l = sorted(d[key], key=lambda x: x[2], reverse=True)
+            # print(l)
+            for t in listofN:
+                hits[t] += int(sum([l[i][1] for i in range(t)])>1) 
+        for t in listofN:
+            hits[t] /= n
+        return hits[1], hits[3], hits[5], hits[10]
+
