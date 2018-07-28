@@ -35,7 +35,7 @@ tf.app.flags.DEFINE_float('drop_prob', 0.5, 'dropout rate')
 
 FLAGS = tf.app.flags.FLAGS
 
-from framework import Framework 
+from framework import Framework
 def main(_):
     from model.pcnn_att import pcnn_att
     from model.cnn_att import cnn_att
@@ -60,13 +60,13 @@ def main(_):
 
     from model.pcnn_ave_adv import pcnn_ave_adv
     from model.pcnn_max_adv import pcnn_max_adv
-    from model.cnn_ave_adv import cnn_ave_adv 
+    from model.cnn_ave_adv import cnn_ave_adv
     from model.cnn_max_adv import cnn_max_adv
     from model.cnn_att_adv import cnn_att_adv
     from model.rnn_att_adv import rnn_att_adv
     from model.rnn_max_adv import rnn_max_adv
     from model.rnn_ave_adv import rnn_ave_adv
-    from model.birnn_max_adv import birnn_max_adv  
+    from model.birnn_max_adv import birnn_max_adv
     from model.birnn_ave_adv import birnn_ave_adv
     from model.birnn_att_adv import birnn_att_adv
     from model.pcnn_att_adam import pcnn_att_adam
@@ -74,7 +74,7 @@ def main(_):
     if not FLAGS.model_name in locals():
         exit()
     model = locals()[FLAGS.model_name]
-    model(is_training=False)
+    model(is_training=False, is_dev=True)
 
 if __name__ == "__main__":
-    tf.app.run() 
+    tf.app.run()

@@ -123,6 +123,31 @@ class Framework(object):
         print('position size     : %d' % (FLAGS.pos_size))
         print('hidden size        : %d' % (FLAGS.hidden_size))
 
+    def load_dev_data(self):
+        print('reading test data...')
+        #self.data_word_vec = np.load(os.path.join(FLAGS.export_path, 'vec.npy'))
+        self.data_instance_entity = np.load(os.path.join(FLAGS.export_path, 'dev_instance_entity.npy'))
+        self.data_instance_entity_no_bag = np.load(os.path.join(FLAGS.export_path, 'dev_instance_entity_no_bag.npy'))
+        instance_triple = np.load(os.path.join(FLAGS.export_path, 'dev_instance_triple.npy'))
+        self.data_instance_triple = {}
+        for item in instance_triple:
+            self.data_instance_triple[(item[0], item[1], int(item[2]))] = 0
+        self.data_instance_scope = np.load(os.path.join(FLAGS.export_path, 'dev_instance_scope.npy'))
+        self.data_test_length = np.load(os.path.join(FLAGS.export_path, 'dev_len.npy'))
+        self.data_test_label = np.load(os.path.join(FLAGS.export_path, 'dev_label.npy'))
+        self.data_test_word = np.load(os.path.join(FLAGS.export_path, 'dev_word.npy'))
+        self.data_test_pos1 = np.load(os.path.join(FLAGS.export_path, 'dev_pos1.npy'))
+        self.data_test_pos2 = np.load(os.path.join(FLAGS.export_path, 'dev_pos2.npy'))
+        self.data_test_mask = np.load(os.path.join(FLAGS.export_path, 'dev_mask.npy'))
+
+        print('reading finished')
+        print('mentions         : %d' % (len(self.data_instance_triple)))
+        print('sentences        : %d' % (len(self.data_test_length)))
+        print('relations        : %d' % (FLAGS.num_classes))
+        print('word size        : %d' % (FLAGS.word_size))
+        print('position size     : %d' % (FLAGS.pos_size))
+        print('hidden size        : %d' % (FLAGS.hidden_size))
+
     def init_train_model(self, loss, output, optimizer=tf.train.GradientDescentOptimizer):
         print('initializing training model...')
 
@@ -341,8 +366,8 @@ class Framework(object):
 
         if not os.path.exists(FLAGS.test_result_dir):
             os.mkdir(FLAGS.test_result_dir)
-        np.save(os.path.join(FLAGS.test_result_dir, FLAGS.model_name + '_' + FLAGS.drop_prob + '_' + FLAGS.learning_rate + '_x.npy'), save_x)
-        np.save(os.path.join(FLAGS.test_result_dir, FLAGS.model_name + '_' + FLAGS.drop_prob + '_' + FLAGS.learning_rate + '_y.npy'), save_y)
+        np.save(os.path.join(FLAGS.test_result_dir, FLAGS.model_name + '_' + str(FLAGS.drop_prob) + '_' + str(FLAGS.learning_rate) + '_x.npy'), save_x)
+        np.save(os.path.join(FLAGS.test_result_dir, FLAGS.model_name + '_' + str(FLAGS.drop_prob) + '_' + str(FLAGS.learning_rate) + '_y.npy'), save_y)
         print('best epoch:', best_epoch)
         print('best f1 epoch:', best_f1_epoch)
         print('P, R, F1:', precision, ',', recall, ',', best_f1)
