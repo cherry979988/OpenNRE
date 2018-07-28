@@ -341,11 +341,11 @@ class Framework(object):
 
         if not os.path.exists(FLAGS.test_result_dir):
             os.mkdir(FLAGS.test_result_dir)
-        np.save(os.path.join(FLAGS.test_result_dir, FLAGS.model_name + '_x.npy'), save_x)
-        np.save(os.path.join(FLAGS.test_result_dir, FLAGS.model_name + '_y.npy'), save_y)
+        np.save(os.path.join(FLAGS.test_result_dir, FLAGS.model_name + '_' + FLAGS.drop_prob + '_' + FLAGS.learning_rate + '_x.npy'), save_x)
+        np.save(os.path.join(FLAGS.test_result_dir, FLAGS.model_name + '_' + FLAGS.drop_prob + '_' + FLAGS.learning_rate + '_y.npy'), save_y)
         print('best epoch:', best_epoch)
         print('best f1 epoch:', best_f1_epoch)
-        print('P,R,F1:', precision,',',recall,',',best_f1)
+        print('P, R, F1:', precision, ',', recall, ',', best_f1)
 
     def adversarial(self, loss, embedding):
         perturb = tf.gradients(loss, embedding)
