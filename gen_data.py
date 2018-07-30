@@ -245,7 +245,7 @@ sort_files("train_new")
 sort_files("test")
 sort_files("dev")
 
-instance_triple, instance_scope, train_len, train_label, train_word, train_pos1, train_pos2, train_mask = init_train_files("train_sort")
+instance_triple, instance_scope, train_len, train_label, train_word, train_pos1, train_pos2, train_mask = init_train_files("train_new_sort")
 np.save(export_path+'train_instance_triple', instance_triple)
 np.save(export_path+'train_instance_scope', instance_scope)
 np.save(export_path+'train_len', train_len)
