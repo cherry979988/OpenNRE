@@ -276,9 +276,10 @@ class Framework(object):
                         weights.append(self.reltot[self.data_train_label[i]])
                     loss = one_step(self, index, index + [0], weights, self.data_train_label[index], [self.loss])
 
-                time_str = datetime.datetime.now().isoformat()
-                sys.stdout.write("epoch %d step %d time %s | loss : %f, NA accuracy: %f, not NA accuracy: %f, total accuracy %f" % (epoch, i, time_str, loss[0], self.acc_NA.get(), self.acc_not_NA.get(), self.acc_total.get()) + '\n')
-                sys.stdout.flush()
+                if i==0:
+                    time_str = datetime.datetime.now().isoformat()
+                    sys.stdout.write("epoch %d step %d time %s | loss : %f, NA accuracy: %f, not NA accuracy: %f, total accuracy %f" % (epoch, i, time_str, loss[0], self.acc_NA.get(), self.acc_not_NA.get(), self.acc_total.get()) + '\n')
+                # sys.stdout.flush()
 
             if (epoch + 1) % FLAGS.save_epoch == 0:
                 print('epoch ' + str(epoch + 1) + ' has finished')
