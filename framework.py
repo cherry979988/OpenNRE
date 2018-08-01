@@ -8,6 +8,7 @@ from network.encoder import Encoder
 from network.selector import Selector
 from network.classifier import Classifier
 import os
+import pickle
 import sklearn.metrics
 
 import time
@@ -288,6 +289,8 @@ class Framework(object):
                 print('have saved model to ' + path)
 
     def test(self, one_step=test_one_step):
+    # this test is actually used as tuning
+    # the real test is 'test_some_epoch'
         epoch_range = eval(FLAGS.epoch_range)
         epoch_range = range(epoch_range[0], epoch_range[1])
         save_x = None
@@ -364,14 +367,104 @@ class Framework(object):
                 precision = pr_result_y[idx]
                 recall = pr_result_x[idx]
 
-
         if not os.path.exists(FLAGS.test_result_dir):
             os.mkdir(FLAGS.test_result_dir)
         np.save(os.path.join(FLAGS.test_result_dir, FLAGS.model_name + '_' + str(FLAGS.drop_prob) + '_' + str(FLAGS.learning_rate) + '_' + str(FLAGS.batch_size) + '_x.npy'), save_x)
         np.save(os.path.join(FLAGS.test_result_dir, FLAGS.model_name + '_' + str(FLAGS.drop_prob) + '_' + str(FLAGS.learning_rate) + '_' + str(FLAGS.batch_size) + '_y.npy'), save_y)
+        self.save_epoch(FLAGS.drop_prob, FLAGS.learning_rate, FLAGS.batch_size, best_epoch)
         print('best epoch:', best_epoch)
         print('best f1 epoch:', best_f1_epoch)
         print('P, R, F1:', precision, ',', recall, ',', best_f1)
+
+    def save_epoch(self, dropout, lr, bsize, epoch):
+        d = dict()
+        with open('test_result/epoch_dict.pkl', 'rb') as f:
+            d = pickle.load(f)
+        d[(dropout, lr, bsize)] = epoch
+        with open('test_result/epoch_dict.pkl', 'wb') as f:
+            pickle.dump(d, f, pickle.HIGHEST_PROTOCOL)
+
+    def get_epoch(self, dropout, lr, bsize):
+        fin = open('test_result/epoch_dict.pkl', 'rb')
+        d = pickle.load(fin)
+        key = (dropout, lr, bsize)
+        if key in d:
+            return key[d]
+        else:
+            return FLAGS.max_epoch-1 # default return
+
+    def test_some_epoch(self, one_step=test_one_step):
+        epoch = self.get_epoch(FLAGS.drop_prob, FLAGS.learning_rate, FLAGS.batch_size)
+        save_x = None
+        save_y = None
+        best_auc = 0
+        best_epoch = 0
+
+        print('test ' + str(epoch) + ' epoch of ' + FLAGS.model_name)
+        # for epoch in epoch_range:
+
+        if not os.path.exists(os.path.join(FLAGS.checkpoint_dir, FLAGS.model_name + '-' + str(epoch) + '.index')):
+            print('#epoch does not exist!')
+            return 0
+
+        print('start testing checkpoint, iteration =', epoch)
+        self.saver.restore(self.sess, os.path.join(FLAGS.checkpoint_dir, FLAGS.model_name + '-' + str(epoch)))
+        total = int(len(self.data_instance_scope) / FLAGS.batch_size)
+
+        test_result = []
+        total_recall = 0
+        for i in range(total):
+            input_scope = self.data_instance_scope[
+                          i * FLAGS.batch_size:min((i + 1) * FLAGS.batch_size, len(self.data_instance_scope))]
+            index = []
+            scope = [0]
+            label = []
+            for num in input_scope:
+                index = index + list(range(num[0], num[1] + 1))
+                label.append(self.data_test_label[num[0]])
+                scope.append(scope[len(scope) - 1] + num[1] - num[0] + 1)
+
+            one_step(self, index, scope, label, [])
+
+            for j in range(len(self.test_output)):
+                pred = self.test_output[j]
+                entity = self.data_instance_entity[j + i * FLAGS.batch_size]
+                for rel in range(1, len(pred)):
+                    flag = int(((entity[0], entity[1], rel) in self.data_instance_triple))
+                    total_recall += flag
+                    test_result.append([(entity[0], entity[1], rel), flag, pred[rel]])
+
+            if i % 100 == 0:
+                sys.stdout.write('predicting {} / {}\n'.format(i, total))
+                sys.stdout.flush()
+
+        print('\nevaluating...')
+
+        sorted_test_result = sorted(test_result, key=lambda x: x[2])
+        pr_result_x = []
+        pr_result_y = []
+        correct = 0
+        for i, item in enumerate(sorted_test_result[::-1]):
+            if item[1] == 1:
+                correct += 1
+            pr_result_y.append(float(correct) / (i + 1))
+            pr_result_x.append(float(correct) / total_recall)
+
+        auc = sklearn.metrics.auc(x=pr_result_x, y=pr_result_y)
+        print('auc:', auc)
+        best_auc = auc
+        best_epoch = epoch
+        save_x = pr_result_x
+        save_y = pr_result_y
+
+        if not os.path.exists(FLAGS.test_result_dir):
+            os.mkdir(FLAGS.test_result_dir)
+        np.save(os.path.join(FLAGS.test_result_dir, FLAGS.model_name + '_' + str(FLAGS.drop_prob) + '_' + str(
+            FLAGS.learning_rate) + '_x_test.npy'), save_x)
+        np.save(os.path.join(FLAGS.test_result_dir, FLAGS.model_name + '_' + str(FLAGS.drop_prob) + '_' + str(
+            FLAGS.learning_rate) + '_y_test.npy'), save_y)
+
+        print ('auc @ epoch ' + str(epoch) + ': ' + str(best_auc))
 
     def adversarial(self, loss, embedding):
         perturb = tf.gradients(loss, embedding)

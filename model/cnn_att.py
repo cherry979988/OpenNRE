@@ -25,7 +25,9 @@ def cnn_att(is_training, is_dev=False):
         framework.init_test_model(tf.nn.softmax(logit))
         if is_dev:
             framework.load_dev_data()
+            framework.test()
         else:
             framework.load_test_data()
-        framework.test()
+            framework.test_some_epoch()
+
 
