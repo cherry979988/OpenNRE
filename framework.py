@@ -377,9 +377,11 @@ class Framework(object):
         print('P, R, F1:', precision, ',', recall, ',', best_f1)
 
     def save_epoch(self, model_name, dropout, lr, bsize, epoch):
-        d = dict()
-        with open('test_result/epoch_dict.pkl', 'rb') as f:
-            d = pickle.load(f)
+        if os.path.isfile('test_result/epoch_dict.pkl'):
+            with open('test_result/epoch_dict.pkl', 'rb') as f:
+                d = pickle.load(f)
+        else:
+            d = dict()
         d[(model_name, dropout, lr, bsize)] = epoch
         with open('test_result/epoch_dict.pkl', 'wb') as f:
             pickle.dump(d, f, pickle.HIGHEST_PROTOCOL)
