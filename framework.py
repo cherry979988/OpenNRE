@@ -391,7 +391,7 @@ class Framework(object):
         d = pickle.load(fin)
         key = (model_name, dropout, lr, bsize)
         if key in d:
-            return key[d]
+            return d[key]
         else:
             return FLAGS.max_epoch-1 # default return
 
