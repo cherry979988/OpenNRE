@@ -1,6 +1,7 @@
 import sys
 import os
 import pickle
+import subprocess
 
 def get_best_dropout(model_name, lr, bsize):
     fin = open('test_result/epoch_dict.pkl', 'rb')
@@ -54,9 +55,9 @@ for dropout in dropout_list:
     cmd2 = 'CUDA_VISIBLE_DEVICES=%s python dev.py --model_name %s --learning_rate %s --drop_prob %s --batch_size %s --random_seed 1234'\
         % (devices, model_name, default_lr, dropout, default_bsize)
     print(cmd1)
-    os.popen(cmd1,'r',1)
+    subprocess.call(cmd1)
     print(cmd2)
-    os.popen(cmd2,'r',2)
+    subprocess.call(cmd2)
 
 best_dropout = get_best_dropout(model_name, default_lr, default_bsize)
 
@@ -66,9 +67,9 @@ for lr in lr_list:
     cmd2 = 'CUDA_VISIBLE_DEVICES=%s python dev.py --model_name %s --learning_rate %s --drop_prob %s --batch_size %s --random_seed 1234'\
         % (devices, model_name, lr, best_dropout, default_bsize)
     print(cmd1)
-    os.popen(cmd1,'r',1)
+    subprocess.call(cmd1)
     print(cmd2)
-    os.popen(cmd2,'r',2)
+    subprocess.call(cmd2)
 
 best_lr = get_best_lr(model_name, best_dropout, default_bsize)
 
@@ -78,9 +79,9 @@ for bsize in bsize_list:
     cmd2 = 'CUDA_VISIBLE_DEVICES=%s python dev.py --model_name %s --learning_rate %s --drop_prob %s --batch_size %s --random_seed 1234'\
         % (devices, model_name, best_lr, best_dropout, bsize)
     print(cmd1)
-    os.popen(cmd1,'r',1)
+    subprocess.call(cmd1)
     print(cmd2)
-    os.popen(cmd2,'r',2)
+    subprocess.call(cmd2)
 
 best_bsize = get_best_bsize(model_name, best_dropout, best_lr)
 
