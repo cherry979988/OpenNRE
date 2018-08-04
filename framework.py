@@ -375,7 +375,7 @@ class Framework(object):
         np.save(os.path.join(FLAGS.test_result_dir, FLAGS.model_name + '_' + str(FLAGS.drop_prob) + '_' + str(FLAGS.learning_rate) + '_' + str(FLAGS.batch_size) + '_x.npy'), save_x)
         np.save(os.path.join(FLAGS.test_result_dir, FLAGS.model_name + '_' + str(FLAGS.drop_prob) + '_' + str(FLAGS.learning_rate) + '_' + str(FLAGS.batch_size) + '_y.npy'), save_y)
         self.save_epoch(FLAGS.model_name, FLAGS.drop_prob, FLAGS.learning_rate, FLAGS.batch_size, best_epoch)
-        self.save_auc(FLAG.model_name, FLAGS.drop_prob, FLAGS.learning_rate, FLAGS.batch_size, best_auc)
+        self.save_auc(FLAGS.model_name, FLAGS.drop_prob, FLAGS.learning_rate, FLAGS.batch_size, best_auc)
         print('best epoch:', best_epoch)
         print('best f1 epoch:', best_f1_epoch)
         print('P, R, F1:', precision, ',', recall, ',', best_f1)
