@@ -372,9 +372,20 @@ class Framework(object):
         np.save(os.path.join(FLAGS.test_result_dir, FLAGS.model_name + '_' + str(FLAGS.drop_prob) + '_' + str(FLAGS.learning_rate) + '_' + str(FLAGS.batch_size) + '_x.npy'), save_x)
         np.save(os.path.join(FLAGS.test_result_dir, FLAGS.model_name + '_' + str(FLAGS.drop_prob) + '_' + str(FLAGS.learning_rate) + '_' + str(FLAGS.batch_size) + '_y.npy'), save_y)
         self.save_epoch(FLAGS.model_name, FLAGS.drop_prob, FLAGS.learning_rate, FLAGS.batch_size, best_epoch)
+        self.save_auc(FLAG.model_name, FLAGS.drop_prob, FLAGS.learning_rate, FLAGS.batch_size, best_auc)
         print('best epoch:', best_epoch)
         print('best f1 epoch:', best_f1_epoch)
         print('P, R, F1:', precision, ',', recall, ',', best_f1)
+        
+    def save_auc(self, model_name, dropout, lr, bsize, auc):
+        if os.path.isfile('test_result/auc_log.pkl'):
+            with open('test_result/auc_log.pkl', 'rb') as f:
+                d = pickle.load(f)
+        else:
+            d = dict()
+        d[(model_name, dropout, lr, bsize)] = auc
+        with open('test_result/auc_log.pkl', 'wb') as f:
+            pickle.dump(d, f, pickle.HIGHEST_PROTOCOL)
 
     def save_epoch(self, model_name, dropout, lr, bsize, epoch):
         if os.path.isfile('test_result/epoch_dict.pkl'):
