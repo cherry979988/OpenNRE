@@ -159,6 +159,9 @@ class Framework(object):
         config = tf.ConfigProto(log_device_placement = False)
         config.gpu_options.allow_growth = True
 
+        tf.set_random_seed(FLAGS.random_seed)
+        np.random.seed(FLAGS.random_seed)
+
         # Optimizer
         self.sess = tf.Session()
         self.global_step = tf.Variable(0, name='global_step', trainable=False)
