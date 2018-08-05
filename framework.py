@@ -184,6 +184,8 @@ class Framework(object):
         print('initializing finished')
 
     def init_test_model(self, output):
+        tf.set_random_seed(FLAGS.random_seed)
+        np.random.seed(FLAGS.random_seed)
         print('initializing test model...')
         self.output = output
         self.sess = tf.Session()
