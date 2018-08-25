@@ -10,7 +10,9 @@ import os
 result_dir = './test_result'
 
 def main():
-    models = sys.argv[1:]
+    # need to num 5 times, add this to indicate
+    run_idx = sys.argv[1]
+    models = sys.argv[2:]
     for model in models:
         x = np.load(os.path.join(result_dir, model +'_x' + '.npy')) 
         y = np.load(os.path.join(result_dir, model + '_y' + '.npy'))
@@ -28,7 +30,9 @@ def main():
     plt.title('Precision-Recall')
     plt.legend(loc="upper right")
     plt.grid(True)
-    plt.savefig(os.path.join(result_dir, 'pr_curve'))
+    plt.savefig(os.path.join(result_dir, 'pr_curve_', str(run_idx)))
+    os.rename(os.path.join(result_dir, model +'_x' + '.npy'), os.path.join(result_dir, model +'_x_' + str(run_idx) + '.npy'))
+    os.reanme(os.path.join(result_dir, model + '_y' + '.npy'), os.path.join(result_dir, model + '_y_' + str(run_idx) + '.npy'))
 
 if __name__ == "__main__":
     main()

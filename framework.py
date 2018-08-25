@@ -8,6 +8,7 @@ from network.encoder import Encoder
 from network.selector import Selector
 from network.classifier import Classifier
 import os
+import pickle
 import sklearn.metrics
 
 import time
@@ -124,12 +125,43 @@ class Framework(object):
         print('position size     : %d' % (FLAGS.pos_size))
         print('hidden size        : %d' % (FLAGS.hidden_size))
 
+    def load_dev_data(self):
+        print('reading test data...')
+        #self.data_word_vec = np.load(os.path.join(FLAGS.export_path, 'vec.npy'))
+        self.data_instance_entity = np.load(os.path.join(FLAGS.export_path, 'dev_instance_entity.npy'))
+        self.data_instance_entity_no_bag = np.load(os.path.join(FLAGS.export_path, 'dev_instance_entity_no_bag.npy'))
+        instance_triple = np.load(os.path.join(FLAGS.export_path, 'dev_instance_triple.npy'))
+        self.data_instance_triple = {}
+        for item in instance_triple:
+            self.data_instance_triple[(item[0], item[1], int(item[2]))] = 0
+        self.data_instance_scope = np.load(os.path.join(FLAGS.export_path, 'dev_instance_scope.npy'))
+        self.data_test_length = np.load(os.path.join(FLAGS.export_path, 'dev_len.npy'))
+        self.data_test_label = np.load(os.path.join(FLAGS.export_path, 'dev_label.npy'))
+        self.data_test_word = np.load(os.path.join(FLAGS.export_path, 'dev_word.npy'))
+        self.data_test_pos1 = np.load(os.path.join(FLAGS.export_path, 'dev_pos1.npy'))
+        self.data_test_pos2 = np.load(os.path.join(FLAGS.export_path, 'dev_pos2.npy'))
+        self.data_test_mask = np.load(os.path.join(FLAGS.export_path, 'dev_mask.npy'))
+
+        print('reading finished')
+        print('mentions         : %d' % (len(self.data_instance_triple)))
+        print('sentences        : %d' % (len(self.data_test_length)))
+        print('relations        : %d' % (FLAGS.num_classes))
+        print('word size        : %d' % (FLAGS.word_size))
+        print('position size     : %d' % (FLAGS.pos_size))
+        print('hidden size        : %d' % (FLAGS.hidden_size))
+
     def init_train_model(self, loss, output, optimizer=tf.train.GradientDescentOptimizer):
         print('initializing training model...')
 
         # Loss and output
         self.loss = loss
         self.output = output
+
+        config = tf.ConfigProto(log_device_placement = False)
+        config.gpu_options.allow_growth = True
+
+        tf.set_random_seed(FLAGS.random_seed)
+        np.random.seed(FLAGS.random_seed)
 
         # Optimizer
         self.sess = tf.Session()
@@ -153,6 +185,8 @@ class Framework(object):
         print('initializing finished')
 
     def init_test_model(self, output):
+        tf.set_random_seed(FLAGS.random_seed)
+        np.random.seed(FLAGS.random_seed)
         print('initializing test model...')
         self.output = output
         self.sess = tf.Session()
@@ -250,7 +284,7 @@ class Framework(object):
                     loss = one_step(self, index, index + [0], weights, self.data_train_label[index], self.data_train_label[index], [self.loss])
 
                 time_str = datetime.datetime.now().isoformat()
-                sys.stdout.write("epoch %d step %d | loss : %f, NA accuracy: %f, not NA accuracy: %f, total accuracy %f" % (epoch, i, loss[0], self.acc_NA.get(), self.acc_not_NA.get(), self.acc_total.get()) + '\r')
+                sys.stdout.write("epoch %d step %d time %s | loss : %f, NA accuracy: %f, not NA accuracy: %f, total accuracy %f" % (epoch, i, time_str, loss[0], self.acc_NA.get(), self.acc_not_NA.get(), self.acc_total.get()) + '\n')
                 sys.stdout.flush()
 
             if (epoch + 1) % FLAGS.save_epoch == 0:
@@ -260,6 +294,8 @@ class Framework(object):
                 print('have saved model to ' + path)
 
     def test(self, one_step=test_one_step):
+    # this test is actually used as tuning
+    # the real test is 'test_some_epoch'
         epoch_range = eval(FLAGS.epoch_range)
         epoch_range = range(epoch_range[0], epoch_range[1])
         save_x = None
@@ -267,6 +303,10 @@ class Framework(object):
         best_auc = 0
         best_prec_mean = 0
         best_epoch = 0
+        best_f1 = 0
+        best_f1_epoch = 0
+        precision = 0
+        recall = 0
         print('test ' + FLAGS.model_name)
         if FLAGS.discard_only_one:
             test_id = []
@@ -336,14 +376,128 @@ class Framework(object):
                 best_epoch = epoch
                 save_x = pr_result_x
                 save_y = pr_result_y
+            f1 = 2/(1/np.array(pr_result_x)+1/np.array(pr_result_y))
+            idx = np.argmax(f1)
+            print('P,R,F1:', pr_result_y[idx],',',pr_result_x[idx],',',np.max(f1))
+            if np.max(f1) > best_f1:
+                best_f1 = np.max(f1)
+                best_f1_epoch = epoch
+                precision = pr_result_y[idx]
+                recall = pr_result_x[idx]
 
         if not os.path.exists(FLAGS.test_result_dir):
             os.mkdir(FLAGS.test_result_dir)
-        np.save(os.path.join(FLAGS.test_result_dir, FLAGS.model_name + '_x.npy'), save_x)
-        np.save(os.path.join(FLAGS.test_result_dir, FLAGS.model_name + '_y.npy'), save_y)
+        np.save(os.path.join(FLAGS.test_result_dir, FLAGS.model_name + '_' + str(FLAGS.drop_prob) + '_' + str(FLAGS.learning_rate) + '_' + str(FLAGS.batch_size) + '_x.npy'), save_x)
+        np.save(os.path.join(FLAGS.test_result_dir, FLAGS.model_name + '_' + str(FLAGS.drop_prob) + '_' + str(FLAGS.learning_rate) + '_' + str(FLAGS.batch_size) + '_y.npy'), save_y)
+        self.save_epoch(FLAGS.model_name, FLAGS.drop_prob, FLAGS.learning_rate, FLAGS.batch_size, best_epoch)
+        self.save_auc(FLAGS.model_name, FLAGS.drop_prob, FLAGS.learning_rate, FLAGS.batch_size, best_auc)
         print('best epoch:', best_epoch)
         if FLAGS.discard_only_one:
             print('USING [DISCARD ONLY ONE INSTANCE ENTITY] MODE!')
+        print('best f1 epoch:', best_f1_epoch)
+        print('P, R, F1:', precision, ',', recall, ',', best_f1)
+        
+    def save_auc(self, model_name, dropout, lr, bsize, auc):
+        if os.path.isfile('test_result/auc_log.pkl'):
+            with open('test_result/auc_log.pkl', 'rb') as f:
+                d = pickle.load(f)
+        else:
+            d = dict()
+        d[(model_name, dropout, lr, bsize)] = auc
+        with open('test_result/auc_log.pkl', 'wb') as f:
+            pickle.dump(d, f, pickle.HIGHEST_PROTOCOL)
+
+    def save_epoch(self, model_name, dropout, lr, bsize, epoch):
+        if os.path.isfile('test_result/epoch_dict.pkl'):
+            with open('test_result/epoch_dict.pkl', 'rb') as f:
+                d = pickle.load(f)
+        else:
+            d = dict()
+        d[(model_name, dropout, lr, bsize)] = epoch
+        with open('test_result/epoch_dict.pkl', 'wb') as f:
+            pickle.dump(d, f, pickle.HIGHEST_PROTOCOL)
+
+    def get_epoch(self, model_name, dropout, lr, bsize):
+        fin = open('test_result/epoch_dict.pkl', 'rb')
+        d = pickle.load(fin)
+        key = (model_name, dropout, lr, bsize)
+        if key in d:
+            return d[key]
+        else:
+            return FLAGS.max_epoch-1 # default return
+
+    def test_some_epoch(self, one_step=test_one_step):
+        epoch = self.get_epoch(FLAGS.model_name, FLAGS.drop_prob, FLAGS.learning_rate, FLAGS.batch_size)
+        save_x = None
+        save_y = None
+        best_auc = 0
+        best_epoch = 0
+
+        print('test ' + str(epoch) + ' epoch of ' + FLAGS.model_name)
+        # for epoch in epoch_range:
+
+        if not os.path.exists(os.path.join(FLAGS.checkpoint_dir, FLAGS.model_name + '-' + str(epoch) + '.index')):
+            print('#epoch does not exist!')
+            return 0
+
+        print('start testing checkpoint, iteration =', epoch)
+        self.saver.restore(self.sess, os.path.join(FLAGS.checkpoint_dir, FLAGS.model_name + '-' + str(epoch)))
+        total = int(len(self.data_instance_scope) / FLAGS.batch_size)
+
+        test_result = []
+        total_recall = 0
+        for i in range(total):
+            input_scope = self.data_instance_scope[
+                          i * FLAGS.batch_size:min((i + 1) * FLAGS.batch_size, len(self.data_instance_scope))]
+            index = []
+            scope = [0]
+            label = []
+            for num in input_scope:
+                index = index + list(range(num[0], num[1] + 1))
+                label.append(self.data_test_label[num[0]])
+                scope.append(scope[len(scope) - 1] + num[1] - num[0] + 1)
+
+            one_step(self, index, scope, label, [])
+
+            for j in range(len(self.test_output)):
+                pred = self.test_output[j]
+                entity = self.data_instance_entity[j + i * FLAGS.batch_size]
+                for rel in range(1, len(pred)):
+                    flag = int(((entity[0], entity[1], rel) in self.data_instance_triple))
+                    total_recall += flag
+                    test_result.append([(entity[0], entity[1], rel), flag, pred[rel]])
+
+            if i % 100 == 0:
+                sys.stdout.write('predicting {} / {}\n'.format(i, total))
+                sys.stdout.flush()
+
+        print('\nevaluating...')
+
+        sorted_test_result = sorted(test_result, key=lambda x: x[2])
+        pr_result_x = []
+        pr_result_y = []
+        correct = 0
+        for i, item in enumerate(sorted_test_result[::-1]):
+            if item[1] == 1:
+                correct += 1
+            pr_result_y.append(float(correct) / (i + 1))
+            pr_result_x.append(float(correct) / total_recall)
+
+        auc = sklearn.metrics.auc(x=pr_result_x, y=pr_result_y)
+        print('auc:', auc)
+        best_auc = auc
+        best_epoch = epoch
+        save_x = pr_result_x
+        save_y = pr_result_y
+
+        if not os.path.exists(FLAGS.test_result_dir):
+            os.mkdir(FLAGS.test_result_dir)
+        np.save(os.path.join(FLAGS.test_result_dir, FLAGS.model_name + '_' + str(FLAGS.drop_prob) + '_' + str(
+            FLAGS.learning_rate) + '_x_test.npy'), save_x)
+        np.save(os.path.join(FLAGS.test_result_dir, FLAGS.model_name + '_' + str(FLAGS.drop_prob) + '_' + str(
+            FLAGS.learning_rate) + '_y_test.npy'), save_y)
+
+        print ('auc @ epoch ' + str(epoch) + ': ' + str(best_auc))
 
     # adversarial part
     def adversarial(self, loss, embedding):

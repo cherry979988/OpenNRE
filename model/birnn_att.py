@@ -3,7 +3,7 @@ import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 
-def birnn_att(is_training):
+def birnn_att(is_training, is_dev=False):
     if is_training:
         framework = Framework(is_training=True)
     else:
@@ -23,6 +23,10 @@ def birnn_att(is_training):
         framework.train()
     else:
         framework.init_test_model(logit)
-        framework.load_test_data()
-        framework.test()
+        if is_dev:
+            framework.load_dev_data()
+            framework.test()
+        else:
+            framework.load_test_data()
+            framework.test_some_epoch()
 

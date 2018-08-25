@@ -148,8 +148,8 @@ def init_train_files(name):
             instance_triple.append(tup)
             instance_scope.append([s,s])
         instance_scope[len(instance_triple) - 1][1] = s
-        if (s+1) % 100 == 0:
-            print(s)
+        # if (s+1) % 100 == 0:
+        #     print(s)
     return np.array(instance_triple), np.array(instance_scope), sen_len, sen_label, sen_word, sen_pos1, sen_pos2, sen_mask
     
 
@@ -229,8 +229,8 @@ def init_test_files(name):
             if tup[2] != 0:
                 instance_triple.append(tup)
         instance_scope[len(instance_scope) - 1][1] = s
-        if (s+1) % 100 == 0:
-            print(s)
+        # if (s+1) % 100 == 0:
+        #     print(s)
     return np.array(instance_entity), np.array(instance_entity_no_bag), np.array(instance_triple), np.array(instance_scope), sen_len, sen_label, sen_word, sen_pos1, sen_pos2, sen_mask
  
 
@@ -241,10 +241,11 @@ f = open(export_path+'config', "w")
 f.write(json.dumps({"word2id":word2id,"relation2id":relation2id,"word_size":word_size, "fixlen":fixlen, "maxlen":maxlen}))
 f.close()
 
-sort_files("train")
+sort_files("train_new")
 sort_files("test")
+sort_files("dev")
 
-instance_triple, instance_scope, train_len, train_label, train_word, train_pos1, train_pos2, train_mask = init_train_files("train_sort")
+instance_triple, instance_scope, train_len, train_label, train_word, train_pos1, train_pos2, train_mask = init_train_files("train_new_sort")
 np.save(export_path+'train_instance_triple', instance_triple)
 np.save(export_path+'train_instance_scope', instance_scope)
 np.save(export_path+'train_len', train_len)
@@ -266,3 +267,14 @@ np.save(export_path+'test_pos1', test_pos1)
 np.save(export_path+'test_pos2', test_pos2)
 np.save(export_path+'test_mask', test_mask)
 
+instance_entity, instance_entity_no_bag, instance_triple, instance_scope, dev_len, dev_label, dev_word, dev_pos1, dev_pos2, dev_mask = init_test_files("dev_sort")
+np.save(export_path+'dev_instance_entity', instance_entity)
+np.save(export_path+'dev_instance_entity_no_bag', instance_entity_no_bag)
+np.save(export_path+'dev_instance_triple', instance_triple)
+np.save(export_path+'dev_instance_scope', instance_scope)
+np.save(export_path+'dev_len', dev_len)
+np.save(export_path+'dev_label', dev_label)
+np.save(export_path+'dev_word', dev_word)
+np.save(export_path+'dev_pos1', dev_pos1)
+np.save(export_path+'dev_pos2', dev_pos2)
+np.save(export_path+'dev_mask', dev_mask)
