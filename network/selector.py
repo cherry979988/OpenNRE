@@ -65,15 +65,17 @@ class Selector(object):
                 test_attention_logit = self.__attention_test_logits__(x, "attention_logits", False)
                 test_tower_output = []
                 test_repre = []
+                test_attention_scores = []
                 for i in range(scope.shape[0] - 1):
                     test_attention_score = tf.nn.softmax(tf.transpose(test_attention_logit[scope[i]:scope[i+1],:]))
+                    test_attention_scores.append(test_attention_score)
                     final_repre = tf.matmul(test_attention_score, x[scope[i]:scope[i+1]])
                     logits = self.__logits__(final_repre, "attention_logits", True)
                     test_repre.append(final_repre)
                     test_tower_output.append(tf.diag_part(tf.nn.softmax(logits)))
                 test_repre = tf.reshape(tf.stack(test_repre), [scope.shape[0] - 1, self.num_classes, -1])
                 test_output = tf.reshape(tf.stack(test_tower_output), [scope.shape[0] - 1, self.num_classes])
-                return test_output, test_repre
+                return test_output, test_repre, test_attention_scores
 
     def average(self, x, scope, dropout_before = False):
         with tf.name_scope("average"):

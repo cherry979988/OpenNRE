@@ -13,7 +13,7 @@ def pcnn_att(is_training, is_dev=False):
     pos_embedding = framework.embedding.pos_embedding()
     embedding = framework.embedding.concat_embedding(word_embedding, pos_embedding)
     x = framework.encoder.pcnn(embedding, FLAGS.hidden_size, framework.mask, activation=tf.nn.relu)
-    logit, repre = framework.selector.attention(x, framework.scope, framework.label_for_select)
+    logit, repre, scores = framework.selector.attention(x, framework.scope, framework.label_for_select)
 
     if is_training:
         loss = framework.classifier.softmax_cross_entropy(logit)
@@ -22,7 +22,7 @@ def pcnn_att(is_training, is_dev=False):
         framework.load_train_data()
         framework.train()
     else:
-        framework.init_test_model(logit) # TODO
+        framework.init_test_model(logit, scores) # TODO
         if is_dev:
             framework.load_dev_data()
             framework.test()

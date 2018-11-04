@@ -184,11 +184,12 @@ class Framework(object):
 
         print('initializing finished')
 
-    def init_test_model(self, output):
+    def init_test_model(self, output, scores):
         tf.set_random_seed(FLAGS.random_seed)
         np.random.seed(FLAGS.random_seed)
         print('initializing test model...')
         self.output = output
+        self.scores = scores
         self.sess = tf.Session()
         self.saver = tf.train.Saver(max_to_keep=None)
         print('initializing finished')
@@ -426,12 +427,36 @@ class Framework(object):
         else:
             return FLAGS.max_epoch-1 # default return
 
+    def get_auc(self, test_result, total_recall, entropy_threshold = 10000):
+        sorted_test_result = sorted(test_result, key=lambda x: x[2], reverse=True)
+        filtered_test_result = list(filter(lambda x: x[3] < entropy_threshold, sorted_test_result))
+        pr_result_x = []
+        pr_result_y = []
+        correct = 0
+        count = 0
+
+        #print(sorted_test_result[:100])
+        #for i in [100, 200, 300]:
+            #print(np.mean([sorted_test_result[j][3] for j in range(i)]))
+
+        for i, item in enumerate(filtered_test_result):
+            if item[1] == 1:
+                correct += 1
+            pr_result_y.append(float(correct) / (i+1))
+            pr_result_x.append(float(correct) / total_recall)
+
+        auc = sklearn.metrics.auc(x=pr_result_x, y=pr_result_y)
+        return auc
+
+
     def test_some_epoch(self, one_step=test_one_step):
         epoch = self.get_epoch(FLAGS.model_name, FLAGS.drop_prob, FLAGS.learning_rate, FLAGS.batch_size)
         save_x = None
         save_y = None
         best_auc = 0
         best_epoch = 0
+        # ban = set([48, 28])
+        ban = set()
 
         print('test ' + str(epoch) + ' epoch of ' + FLAGS.model_name)
         # for epoch in epoch_range:
@@ -446,6 +471,7 @@ class Framework(object):
 
         test_result = []
         total_recall = 0
+        list0 = [[] for i in range(53)]
         for i in range(total):
             input_scope = self.data_instance_scope[
                           i * FLAGS.batch_size:min((i + 1) * FLAGS.batch_size, len(self.data_instance_scope))]
@@ -457,7 +483,9 @@ class Framework(object):
                 label.append(self.data_test_label[num[0]])
                 scope.append(scope[len(scope) - 1] + num[1] - num[0] + 1)
 
-            one_step(self, index, scope, label, [])
+            #one_step(self, index, scope, label, [])
+            scores = one_step(self, index, scope, label, [self.scores])
+            #print(scores)
 
             for j in range(len(self.test_output)):
                 pred = self.test_output[j]
@@ -465,14 +493,13 @@ class Framework(object):
                 for rel in range(1, len(pred)):
                     flag = int(((entity[0], entity[1], rel) in self.data_instance_triple))
                     total_recall += flag
-                    test_result.append([(entity[0], entity[1], rel), flag, pred[rel]])
+                    test_result.append([(entity[0], entity[1], rel), flag, pred[rel], scores[0][j][rel]])
 
             if i % 100 == 0:
                 sys.stdout.write('predicting {} / {}\n'.format(i, total))
                 sys.stdout.flush()
 
         print('\nevaluating...')
-
         sorted_test_result = sorted(test_result, key=lambda x: x[2])
         pr_result_x = []
         pr_result_y = []
@@ -482,6 +509,9 @@ class Framework(object):
                 correct += 1
             pr_result_y.append(float(correct) / (i + 1))
             pr_result_x.append(float(correct) / total_recall)
+            if i<100 and item[1] == 1:
+                print(item[0])
+                print(item[3])
 
         auc = sklearn.metrics.auc(x=pr_result_x, y=pr_result_y)
         print('auc:', auc)
@@ -490,14 +520,16 @@ class Framework(object):
         save_x = pr_result_x
         save_y = pr_result_y
 
+        prec_mean = (pr_result_y[100] + pr_result_y[200] + pr_result_y[300]) / 3
+        print('p@(100,200,300) mean: {}'.format(prec_mean))
+        print(pr_result_y[100], pr_result_y[200], pr_result_y[300])
+
         if not os.path.exists(FLAGS.test_result_dir):
             os.mkdir(FLAGS.test_result_dir)
         np.save(os.path.join(FLAGS.test_result_dir, FLAGS.model_name + '_' + str(FLAGS.drop_prob) + '_' + str(
             FLAGS.learning_rate) + '_x_test.npy'), save_x)
         np.save(os.path.join(FLAGS.test_result_dir, FLAGS.model_name + '_' + str(FLAGS.drop_prob) + '_' + str(
             FLAGS.learning_rate) + '_y_test.npy'), save_y)
-
-        print ('auc @ epoch ' + str(epoch) + ': ' + str(best_auc))
 
     # adversarial part
     def adversarial(self, loss, embedding):

@@ -2,6 +2,7 @@ import numpy as np
 import os
 import json
 import os
+import pickle
 
 # folder of training datasets
 data_path = "./origin_data/"
@@ -182,6 +183,9 @@ def init_test_files(name):
         ss.append((en1_id + '\t' + en2_id + '\t' + rel_name, sentence, en1_id, en2_id, en1_name, en2_name, rel_name))
     
     ss = sorted(ss, key=lambda x:x[0])
+    if 'test' in name:
+        with open('ss.pkl', 'wb') as handle:
+            pickle.dump(ss, handle, protocol=pickle.HIGHEST_PROTOCOL)
         
     for s in range(total):
         unique_id, sentence, en1_id, en2_id, en1_name, en2_name, rel_name = ss[s]
